@@ -1,7 +1,6 @@
 # pylint: disable=missing-module-docstring
 
 import sys
-import urllib.parse
 import requests
 
 BASE_URI = "https://weather.lewagon.com"
@@ -12,7 +11,6 @@ def search_city(query):
     Look for a given city. If multiple options are returned, have the user choose between them.
     Return one city (or None)
     '''
-    # Fetch city data from API
     data = requests.get(f'{BASE_URI}/geo/1.0/direct?q={query}&limit=5').json()
 
     if not data:
@@ -26,19 +24,30 @@ def search_city(query):
             print(f'{i+1}: {city["name"]}')
         idx = int(input('Pick a number for the one you meant.\n>'))
         return data[idx-1]
-
+    return None
 
 def weather_forecast(lat, lon):
     '''Return a 5-day weather forecast for the city, given its latitude and longitude.'''
-
+    forecast_data = requests.get(f'{BASE_URI}/data/2.5/forecast?lat={lat}&lon={lon}').json()
+    forecast = []
+    for entry in forecast_data['list']:
+        if '12:00:00' in entry['dt_txt']:
+            forecast.append({
+                'date': entry['dt_txt'][:10],
+                'temp': round(entry['main']['temp'] - 273.15),
+                'weather': entry['weather'][0]['main']
+            })
+            if len(forecast) == 5:
+                return forecast
+    return None
 
 def main():
     '''Ask user for a city and display weather forecast'''
     query = input("City?\n> ")
     city = search_city(query)
-    weather_forecast(city['lat'], city['lon'])
-    # TODO: Display weather forecast for a given city
-    pass  # YOUR CODE HERE
+    result = weather_forecast(city['lat'], city['lon'])
+    for day in result:
+        print(f'{day["date"]}: {day["weather"]} ({day["temp"]}°C)')
 
 if __name__ == '__main__':
     try:
